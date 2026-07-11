@@ -1,0 +1,27 @@
+{
+  "scenario_id": "SC-042",
+  "system": "camera_radar_pedestrian_detection",
+  "environment": {
+    "time_of_day": "night",
+    "weather": "rain",
+    "road_condition": "wet"
+  },
+  "ground_truth": {
+    "pedestrian_present": true
+  },
+  "predictions": {
+    "camera_model": {
+      "class": "background",
+      "confidence": 0.78
+    },
+    "radar_model": {
+      "class": "pedestrian",
+      "confidence": 0.84
+    }
+  },
+  "xai_summary": {
+    "camera_attention": "road reflections",
+    "expected_region": "pedestrian region"
+  },
+  "notes": "Possible sensor disagreement under low-light conditions."
+}
