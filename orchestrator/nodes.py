@@ -26,35 +26,35 @@ from mcp_servers.analysis_server import get_scenario_metadata
 from core.llm import LLM
 from core.logger import log_event
 from rag.adapter import KnowledgeAdapter
+from langchain_core.runnables import RunnableConfig
+from orchestrator.context import PipelineContext
 
 
-# ── Module-level references (injected at startup) ──
-_llm: LLM | None = None
-_adapter: KnowledgeAdapter | None = None
-
-
-def init_nodes(llm: LLM, adapter: KnowledgeAdapter):
-    """Called once at startup to inject dependencies."""
-    global _llm, _adapter
-    _llm = llm
-    _adapter = adapter
+def _ctx(config: RunnableConfig) -> PipelineContext:
+    """Pull the PipelineContext injected via graph.invoke(config=...)."""
+    ctx = config.get("configurable", {}).get("pipeline_ctx")
+    if ctx is None:
+        raise RuntimeError(
+            "PipelineContext not found in graph config. "
+            "Pass config={'configurable': {'pipeline_ctx': ctx}} to graph.invoke()."
+        )
+    return ctx
 
 
 # ──────────────────────────────────────────────────────────────
 # Node: gather_evidence
 # ──────────────────────────────────────────────────────────────
-def gather_evidence(state: InvestigationState) -> dict:
+def gather_evidence(state: InvestigationState, config: RunnableConfig) -> dict:
     """Runs the Evidence Agent."""
+    ctx = _ctx(config)
     task_id = state["task_id"]
     print(f"\n{'='*60}")
     print(f"[1/8] Evidence Agent — gathering evidence for {task_id}")
     print(f"{'='*60}")
 
-    # Get scenario metadata from analysis server
-    scenario_id = task_id  # SC-042
-    scenario_data = get_scenario_metadata(scenario_id)
+    scenario_data = get_scenario_metadata(task_id)
 
-    agent = EvidenceAgent(llm=_llm, adapter=_adapter)
+    agent = EvidenceAgent(llm=ctx.llm, adapter=ctx.adapter)
     report = agent.run(
         task_id=task_id,
         user_request=state["user_request"],
@@ -71,28 +71,28 @@ def gather_evidence(state: InvestigationState) -> dict:
 # ──────────────────────────────────────────────────────────────
 # Nodes: specialist agents (can run in parallel)
 # ──────────────────────────────────────────────────────────────
-def run_technical(state: InvestigationState) -> dict:
+def run_technical(state: InvestigationState, config: RunnableConfig) -> dict:
     """Runs the Technical Analysis Agent."""
     print(f"\n[2a/8] Technical Agent — analyzing ...")
-    agent = TechnicalAgent(llm=_llm)
+    agent = TechnicalAgent(llm=_ctx(config).llm)
     opinion = agent.run(state["task_id"], state["evidence_report"])
     print(f"  → confidence={opinion.confidence}, findings={len(opinion.key_findings)}")
     return {"technical_opinion": opinion.model_dump()}
 
 
-def run_quality(state: InvestigationState) -> dict:
+def run_quality(state: InvestigationState, config: RunnableConfig) -> dict:
     """Runs the Quality/Risk Agent."""
     print(f"\n[2b/8] Quality Agent — assessing risk ...")
-    agent = QualityAgent(llm=_llm)
+    agent = QualityAgent(llm=_ctx(config).llm)
     opinion = agent.run(state["task_id"], state["evidence_report"])
     print(f"  → confidence={opinion.confidence}, findings={len(opinion.key_findings)}")
     return {"quality_opinion": opinion.model_dump()}
 
 
-def run_compliance(state: InvestigationState) -> dict:
+def run_compliance(state: InvestigationState, config: RunnableConfig) -> dict:
     """Runs the Compliance Agent."""
     print(f"\n[2c/8] Compliance Agent — checking requirements ...")
-    agent = ComplianceAgent(llm=_llm)
+    agent = ComplianceAgent(llm=_ctx(config).llm)
     opinion = agent.run(state["task_id"], state["evidence_report"])
     print(f"  → confidence={opinion.confidence}, findings={len(opinion.key_findings)}")
     return {"compliance_opinion": opinion.model_dump()}
@@ -101,10 +101,10 @@ def run_compliance(state: InvestigationState) -> dict:
 # ──────────────────────────────────────────────────────────────
 # Node: critic
 # ──────────────────────────────────────────────────────────────
-def run_critic(state: InvestigationState) -> dict:
+def run_critic(state: InvestigationState, config: RunnableConfig) -> dict:
     """Runs the Critic Agent to compare specialist opinions."""
     print(f"\n[3/8] Critic Agent — comparing opinions ...")
-    agent = CriticAgent(llm=_llm)
+    agent = CriticAgent(llm=_ctx(config).llm)
     review = agent.run(
         task_id=state["task_id"],
         technical_opinion=state["technical_opinion"],
@@ -120,10 +120,10 @@ def run_critic(state: InvestigationState) -> dict:
 # ──────────────────────────────────────────────────────────────
 # Node: synthesis
 # ──────────────────────────────────────────────────────────────
-def run_synthesis(state: InvestigationState) -> dict:
+def run_synthesis(state: InvestigationState, config: RunnableConfig) -> dict:
     """Runs the Synthesis Agent to produce the final summary."""
     print(f"\n[4/8] Synthesis Agent — producing final summary ...")
-    agent = SynthesisAgent(llm=_llm)
+    agent = SynthesisAgent(llm=_ctx(config).llm)
     synthesis = agent.run(
         task_id=state["task_id"],
         evidence_report=state["evidence_report"],
@@ -134,16 +134,19 @@ def run_synthesis(state: InvestigationState) -> dict:
     )
     print(f"  → accepted={len(synthesis.accepted_findings)}, "
           f"rejected={len(synthesis.rejected_findings)}")
-    return {"final_synthesis": synthesis.model_dump()}
+    return {
+        "final_synthesis": synthesis.model_dump(),
+        "retry_count": state.get("retry_count", 0) + 1,
+    }
 
 
 # ──────────────────────────────────────────────────────────────
 # Node: validation
 # ──────────────────────────────────────────────────────────────
-def run_validation(state: InvestigationState) -> dict:
+def run_validation(state: InvestigationState, config: RunnableConfig) -> dict:
     """Runs the Validator Agent to quality-check the synthesis."""
     print(f"\n[5/8] Validator Agent — checking synthesis quality ...")
-    agent = ValidatorAgent(llm=_llm)
+    agent = ValidatorAgent(llm=_ctx(config).llm)
     report = agent.run(
         task_id=state["task_id"],
         evidence_report=state["evidence_report"],
@@ -259,6 +262,7 @@ def run_automation(state: InvestigationState) -> dict:
     results = agent.run(
         task_id=state["task_id"],
         final_synthesis=state["final_synthesis"],
+        report_markdown=state.get("report_markdown", ""),
         human_feedback=state.get("human_feedback", ""),
     )
 
