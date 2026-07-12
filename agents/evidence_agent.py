@@ -9,7 +9,7 @@ then packages everything into an EvidenceReport.
 import json
 from core.llm import LLM
 from core.skill_loader import load_skill
-from core.schemas import EvidenceReport, SourceReference
+from core.schemas import EvidenceReport
 from core.logger import log_event
 from rag.adapter import KnowledgeAdapter
 
@@ -28,7 +28,6 @@ class EvidenceAgent:
         log_event("agent_start", "evidence_agent", task_id)
 
         # ── Gather evidence from RAG ──
-        scenario_id = scenario_data.get("scenario_id", "unknown")
         system_name = scenario_data.get("system", "")
         env = scenario_data.get("environment", {})
 
@@ -37,8 +36,8 @@ class EvidenceAgent:
             f"{system_name} {env.get('weather', '')} {env.get('time_of_day', '')} failure",
             f"camera false negative pedestrian {env.get('weather', '')}",
             f"sensor disagreement {system_name}",
-            f"robustness requirement adverse visibility",
-            f"human oversight investigation approval",
+            "robustness requirement adverse visibility",
+            "human oversight investigation approval",
         ]
 
         all_results = []

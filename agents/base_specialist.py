@@ -10,7 +10,7 @@ They all follow the same pattern:
 import json
 from core.llm import LLM
 from core.skill_loader import load_skill
-from core.schemas import AgentOpinion, EvidenceReport
+from core.schemas import AgentOpinion
 from core.logger import log_event
 
 

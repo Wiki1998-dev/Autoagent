@@ -8,9 +8,6 @@ Each document becomes:
 
 import json
 from pathlib import Path
-
-import json
-from pathlib import Path
 from markitdown import MarkItDown  # <-- 1. Add this import
 
 

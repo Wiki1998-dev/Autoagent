@@ -5,8 +5,6 @@ One-shot RAG pipeline setup:
   3. Return a ready KnowledgeAdapter
 """
 
-from pathlib import Path
-
 from rag.ingestion.loader import load_all_documents
 from rag.embeddings.ollama_embedder import OllamaEmbedder
 from rag.vectorstores.chroma_store import ChromaStore

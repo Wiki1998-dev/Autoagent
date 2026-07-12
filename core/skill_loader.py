@@ -6,7 +6,6 @@ rules, and expected output format. The LLM receives this as
 the system prompt.
 """
 
-from pathlib import Path
 import config
 
 SKILLS_DIR = config.SKILLS_DIR
