@@ -14,6 +14,7 @@ Flow:
 
 from langgraph.graph import StateGraph, END
 
+import config
 from orchestrator.state import InvestigationState
 from orchestrator.nodes import (
     gather_evidence,
@@ -36,6 +37,16 @@ def build_graph() -> StateGraph:
     Construct and compile the investigation graph.
 
     Returns a compiled LangGraph ready to .invoke().
+
+    Whether the 3 specialist agents (Technical/Quality/Compliance) run
+    concurrently or sequentially is controlled by config.PARALLEL_SPECIALISTS:
+      - True  (default when LLM_BACKEND=vllm): all 3 fan out from
+        gather_evidence and run concurrently. Safe because vLLM handles
+        real concurrent requests via continuous batching.
+      - False (default when LLM_BACKEND=ollama): the 3 run one after another
+        in a chain. Local Ollama serves one request at a time by default and
+        can drop connections under concurrent load, so sequential execution
+        is the reliable default there.
     """
     graph = StateGraph(InvestigationState)
 
@@ -55,16 +66,24 @@ def build_graph() -> StateGraph:
     # ── Entry point ──
     graph.set_entry_point("gather_evidence")
 
-    # ── Sequential: evidence → parallel specialists ──
-    # After evidence, fan out to all three specialists
-    graph.add_edge("gather_evidence", "run_technical")
-    graph.add_edge("gather_evidence", "run_quality")
-    graph.add_edge("gather_evidence", "run_compliance")
+    if config.PARALLEL_SPECIALISTS:
+        # ── Concurrent: evidence → all 3 specialists fan out ──
+        graph.add_edge("gather_evidence", "run_technical")
+        graph.add_edge("gather_evidence", "run_quality")
+        graph.add_edge("gather_evidence", "run_compliance")
 
-    # ── All specialists → critic ──
-    graph.add_edge("run_technical", "run_critic")
-    graph.add_edge("run_quality", "run_critic")
-    graph.add_edge("run_compliance", "run_critic")
+        # ── All specialists → critic ──
+        graph.add_edge("run_technical", "run_critic")
+        graph.add_edge("run_quality", "run_critic")
+        graph.add_edge("run_compliance", "run_critic")
+    else:
+        # ── Sequential: evidence → technical → quality → compliance → critic ──
+        # Avoids sending concurrent requests to a single-request-at-a-time
+        # local Ollama server.
+        graph.add_edge("gather_evidence", "run_technical")
+        graph.add_edge("run_technical", "run_quality")
+        graph.add_edge("run_quality", "run_compliance")
+        graph.add_edge("run_compliance", "run_critic")
 
     # ── Critic → synthesis → validation ──
     graph.add_edge("run_critic", "run_synthesis")

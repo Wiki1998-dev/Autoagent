@@ -1,17 +1,23 @@
 """
-LLM wrapper for Ollama.
+LLM wrapper — backend-agnostic.
 
 Provides two calling patterns:
   1. llm.generate(prompt) → raw text
   2. llm.generate_structured(prompt, schema) → parsed Pydantic model
+
+The actual model call is delegated to a pluggable backend (see core/backends.py):
+  - "ollama" (default): local Ollama server, single-request-at-a-time
+  - "vllm": self-hosted vLLM server, OpenAI-compatible, handles real concurrency
+
+Select via config.LLM_BACKEND (env var LLM_BACKEND=ollama|vllm).
 """
 
 import json
 import time
-import ollama
 from pydantic import BaseModel, ValidationError
 from typing import Type, TypeVar
 import config
+from core.backends import build_backend, LLMBackend
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -27,27 +33,68 @@ class LLM:
         model: str | None = None,
         temperature: float | None = None,
         max_tokens: int | None = None,
+        backend: str | None = None,
     ):
-        self.model = model or config.LLM_MODEL
+        """
+        Args:
+            model: model name/id (backend-specific). Defaults to config.LLM_MODEL
+                   for ollama, or config.VLLM_MODEL for vllm.
+            temperature: sampling temperature. Defaults to config.LLM_TEMPERATURE.
+            max_tokens: max output tokens. Defaults to config.LLM_MAX_TOKENS.
+            backend: "ollama" or "vllm". Defaults to config.LLM_BACKEND.
+        """
         self.temperature = temperature if temperature is not None else config.LLM_TEMPERATURE
         self.max_tokens = max_tokens or config.LLM_MAX_TOKENS
+        self.backend_name = (backend or config.LLM_BACKEND).lower()
+        self._backend: LLMBackend = build_backend(backend_name=self.backend_name, model=model)
+        self.model = getattr(self._backend, "model", model)
 
-    def generate(self, prompt: str, system: str = "") -> str:
-        """Generate raw text from a prompt."""
+    def generate(self, prompt: str, system: str = "", retries: int = 3) -> str:
+        """
+        Generate raw text from a prompt.
+
+        Retries on transient connection failures. This matters most for the
+        "ollama" backend, which serves one request at a time by default and
+        can drop connections under concurrent load (multiple agents calling
+        the same model at once). The "vllm" backend is far less prone to this
+        since it's built for concurrent serving, but retrying is still cheap
+        insurance against any transient network blip.
+        """
         messages = []
         if system:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
-        response = ollama.chat(
-            model=self.model,
-            messages=messages,
-            options={
-                "temperature": self.temperature,
-                "num_predict": self.max_tokens,
-            },
-        )
-        return response["message"]["content"]
+        last_err: Exception | None = None
+        for attempt in range(1, retries + 1):
+            try:
+                return self._backend.chat(
+                    messages=messages,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                )
+            except Exception as e:
+                # Catches httpx.RemoteProtocolError, ConnectionError, timeouts, etc.
+                last_err = e
+                if attempt < retries:
+                    wait = 2 * attempt
+                    print(
+                        f"  ⚠ {self.backend_name} connection error (attempt {attempt}/{retries}): "
+                        f"{type(e).__name__}: {e}. Retrying in {wait}s..."
+                    )
+                    time.sleep(wait)
+
+        raise ConnectionError(
+            f"Failed to reach '{self.backend_name}' backend after {retries} attempts. "
+            f"Last error: {type(last_err).__name__}: {last_err}. "
+            + (
+                "This usually means Ollama is overloaded by concurrent requests, "
+                "out of memory, or not running. Check 'ollama ps' and Ollama's logs."
+                if self.backend_name == "ollama"
+                else "Check that the vLLM server is running and reachable at "
+                     f"{config.VLLM_BASE_URL}."
+            )
+        ) from last_err
 
     def generate_structured(
         self,

@@ -1,6 +1,7 @@
 chromadb
 pymupdf
 ollama
+openai
 pydantic>=2.0
 langgraph
 langchain-core
