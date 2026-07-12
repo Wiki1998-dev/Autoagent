@@ -26,7 +26,7 @@ logger = structlog.get_logger("autoagent.main")
 
 
 def _install_sigterm_handler(task_id: str) -> None:
-    """Issue #21 — flush audit log and exit cleanly on SIGTERM (K8s, systemd)."""
+    """Flush audit log and exit cleanly on SIGTERM (K8s, systemd)."""
     def _handler(signum, frame):  # noqa: ANN001
         logger.warning("sigterm_received", task_id=task_id)
         log_event("investigation_aborted", "orchestrator", task_id,

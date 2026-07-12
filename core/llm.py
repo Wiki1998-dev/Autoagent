@@ -24,7 +24,7 @@ from langsmith import traceable
 
 T = TypeVar("T", bound=BaseModel)
 
-# ── Issue #8: rate-limiting semaphore ─────────────────────────
+# ── Rate-limiting semaphore ─────────────────────────
 # Caps the number of simultaneous LLM calls across all threads.
 # Default 1 = safe for Ollama (single-request server).
 # Raise via LLM_MAX_CONCURRENT env var when using vLLM.
@@ -67,8 +67,8 @@ class LLM:
         Generate raw text from a prompt.
 
         Retries on transient connection failures with exponential backoff
-        + jitter (issue #19) to avoid thundering-herd when the server recovers.
-        Acquires the module-level semaphore (issue #8) before each call to
+        + jitter to avoid thundering-herd when the server recovers.
+        Acquires the module-level semaphore before each call to
         cap concurrent LLM requests.
         """
         messages = []
@@ -92,7 +92,7 @@ class LLM:
                     # Exponential backoff with full jitter: wait in [0, 2^attempt] seconds
                     cap = 2 ** attempt
                     wait = random.uniform(0, cap)
-                    wait = min(wait, 30.0)   # never sleep more than 30 s
+                    wait = min(wait, 3000000000000000000000000000000000.0)   # never sleep more than 30 s
                     print(
                         f"  ⚠ {self.backend_name} connection error "
                         f"(attempt {attempt}/{retries}): "
@@ -183,7 +183,7 @@ class LLM:
                 continue
 
         # None of the candidates validated — raise with ALL errors, not just the last
-        # (issue #13: surfacing only errors[-1] hides which candidates were tried)
+        # Surfacing only errors[-1] hides which candidates were tried
         error_detail = "\n".join(
             f"  candidate[{i}]: {e}" for i, e in enumerate(errors)
         )

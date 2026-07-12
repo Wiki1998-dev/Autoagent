@@ -39,8 +39,8 @@ class OllamaBackend(LLMBackend):
 
         self.model = model or config.LLM_MODEL
         self.base_url = base_url or config.OLLAMA_BASE_URL
-        # Set a 60-second timeout to avoid hanging indefinitely on concurrent loads
-        self._client = ollama.Client(host=self.base_url, timeout=60.0)
+        # Set a timeout (default 300s) to avoid hanging indefinitely on concurrent loads
+        self._client = ollama.Client(host=self.base_url, timeout=config.LLM_TIMEOUT)
 
     def chat(self, messages: list[dict], temperature: float, max_tokens: int) -> str:
         response = self._client.chat(
@@ -78,8 +78,8 @@ class VLLMBackend(LLMBackend):
         self.model = model or config.VLLM_MODEL
         self.base_url = base_url or config.VLLM_BASE_URL
         self.api_key = api_key or config.VLLM_API_KEY
-        # Set a 60-second timeout to avoid hanging indefinitely on network issues
-        self._client = OpenAI(base_url=self.base_url, api_key=self.api_key, timeout=60.0)
+        # Set a timeout (default 300s) to avoid hanging indefinitely on network issues
+        self._client = OpenAI(base_url=self.base_url, api_key=self.api_key, timeout=config.LLM_TIMEOUT)
 
     def chat(self, messages: list[dict], temperature: float, max_tokens: int) -> str:
         response = self._client.chat.completions.create(

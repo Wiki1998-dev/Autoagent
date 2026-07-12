@@ -20,6 +20,8 @@ Architecture note on MCP (#1):
 from datetime import datetime
 import structlog
 
+import re
+
 from orchestrator.state import InvestigationState
 from agents.evidence_agent import EvidenceAgent
 from agents.technical_agent import TechnicalAgent
@@ -55,7 +57,7 @@ def _ctx(config: RunnableConfig) -> PipelineContext:
 
 
 def _validate_state_entry(state: InvestigationState) -> None:
-    """Issue #9 — validate required fields at graph boundary before any agent runs."""
+    """Validate required fields at graph boundary before any agent runs."""
     task_id = state.get("task_id", "")
     user_request = state.get("user_request", "")
     if not isinstance(task_id, str) or not task_id.strip():
@@ -74,8 +76,12 @@ def gather_evidence(state: InvestigationState, config: RunnableConfig) -> dict:
     task_id = state["task_id"]
     logger.info("node_start", node="gather_evidence", task_id=task_id)
 
-    # ── Issue #1: call the MCP tool via its decorated boundary ──
-    scenario_data = _mcp_get_scenario_metadata(scenario_id=task_id)
+    # Extract scenario ID (e.g., SC-042) from user request, or fall back to task_id
+    match = re.search(r"\b(SC-\d+)\b", state["user_request"], re.IGNORECASE)
+    scenario_id = match.group(1) if match else task_id
+
+    # ── Call the MCP tool via its decorated boundary ──
+    scenario_data = _mcp_get_scenario_metadata(scenario_id=scenario_id)
     if "error" in scenario_data:
         logger.warning(
             "scenario_load_failed",
@@ -84,7 +90,7 @@ def gather_evidence(state: InvestigationState, config: RunnableConfig) -> dict:
         )
         scenario_data = {}   # proceed with empty — evidence agent handles gaps
 
-    # ── Issue #2/#6: guard against LLMParseError / ConnectionError ──
+    # ── Guard against LLMParseError / ConnectionError ──
     try:
         agent = EvidenceAgent(llm=ctx.llm, adapter=ctx.adapter)
         report = agent.run(

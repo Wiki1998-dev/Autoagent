@@ -5,7 +5,7 @@ Every agent action writes a JSONL event to audit/events.jsonl.
 Uses Python's logging module with a RotatingFileHandler, which is
 thread-safe and handles log rotation automatically.
 
-Issue #18: read_audit_log() acquires a threading.Lock shared with the
+read_audit_log() acquires a threading.Lock shared with the
 write path so partial-line reads under concurrent append are impossible.
 """
 
@@ -62,7 +62,7 @@ def read_audit_log(task_id: str | None = None) -> list[dict]:
     """Read audit events, optionally filtered by task_id.
 
     Acquires the write lock so reads are never interleaved with an active
-    append (issue #18).
+    append.
     """
     if not AUDIT_FILE.exists():
         return []

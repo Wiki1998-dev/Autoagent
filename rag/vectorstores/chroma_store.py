@@ -3,12 +3,12 @@ ChromaDB vector store wrapper.
 
 Handles collection creation, document upsert, and similarity search.
 
-Issue #3  — embedding model version stamped in collection metadata; mismatch
-            raises a clear RuntimeError instead of returning silently wrong results.
-Issue #5  — search() raises EmptyRAGError when no results are found so callers
-            can react instead of silently receiving empty context.
-Issue #10 — ChromaDB queries are wrapped in a configurable timeout via a
-            threading.Timer watchdog (ChromaDB has no native query timeout).
+- Embedding model version is stamped in collection metadata; mismatch
+  raises a clear RuntimeError instead of returning silently wrong results.
+- search() raises EmptyRAGError when no results are found so callers
+  can react instead of silently receiving empty context.
+- ChromaDB queries are wrapped in a configurable timeout via a
+  threading.Timer watchdog (ChromaDB has no native query timeout).
 """
 
 import threading
@@ -34,7 +34,7 @@ class ChromaStore:
         self.client = chromadb.PersistentClient(path=persist_dir)
         self.embedder = embedder
 
-        # ── Issue #3: stamp embed model name in collection metadata ──
+        # ── Stamp embed model name in collection metadata ──
         # If the collection already exists with a different model, raise immediately
         # rather than returning plausible-but-wrong embeddings silently.
         existing = self.client.get_or_create_collection(
@@ -84,13 +84,13 @@ class ChromaStore:
         Similarity search. Returns list of:
           {"text": ..., "score": ..., "metadata": ...}
 
-        Raises EmptyRAGError if no results are found (issue #5).
+        Raises EmptyRAGError if no results are found.
         Raises TimeoutError if ChromaDB does not respond within
-        CHROMA_QUERY_TIMEOUT seconds (issue #10).
+        CHROMA_QUERY_TIMEOUT seconds.
         """
         query_embedding = self.embedder.embed(query)
 
-        # ── Issue #10: watchdog timeout ──
+        # ── Watchdog timeout ──
         result_holder: list = []
         exc_holder: list = []
 
@@ -129,7 +129,7 @@ class ChromaStore:
                 }
             )
 
-        # ── Issue #5: signal empty results explicitly ──
+        # ── Signal empty results explicitly ──
         if not output:
             raise EmptyRAGError(
                 f"No documents found in ChromaDB for query: {query!r}. "
