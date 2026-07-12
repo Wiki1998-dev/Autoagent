@@ -13,6 +13,8 @@ Select via config.LLM_BACKEND (env var LLM_BACKEND=ollama|vllm).
 """
 
 import json
+import random
+import threading
 import time
 from pydantic import BaseModel, ValidationError
 from typing import Type, TypeVar
@@ -20,6 +22,15 @@ import config
 from core.backends import build_backend, LLMBackend
 
 T = TypeVar("T", bound=BaseModel)
+
+# ── Issue #8: rate-limiting semaphore ─────────────────────────
+# Caps the number of simultaneous LLM calls across all threads.
+# Default 1 = safe for Ollama (single-request server).
+# Raise via LLM_MAX_CONCURRENT env var when using vLLM.
+_LLM_SEMAPHORE = threading.Semaphore(
+    int(config.LLM_MAX_CONCURRENT) if hasattr(config, "LLM_MAX_CONCURRENT") else 1
+)
+
 
 
 class LLMParseError(Exception):
@@ -53,12 +64,10 @@ class LLM:
         """
         Generate raw text from a prompt.
 
-        Retries on transient connection failures. This matters most for the
-        "ollama" backend, which serves one request at a time by default and
-        can drop connections under concurrent load (multiple agents calling
-        the same model at once). The "vllm" backend is far less prone to this
-        since it's built for concurrent serving, but retrying is still cheap
-        insurance against any transient network blip.
+        Retries on transient connection failures with exponential backoff
+        + jitter (issue #19) to avoid thundering-herd when the server recovers.
+        Acquires the module-level semaphore (issue #8) before each call to
+        cap concurrent LLM requests.
         """
         messages = []
         if system:
@@ -68,19 +77,24 @@ class LLM:
         last_err: Exception | None = None
         for attempt in range(1, retries + 1):
             try:
-                return self._backend.chat(
-                    messages=messages,
-                    temperature=self.temperature,
-                    max_tokens=self.max_tokens,
-                )
+                # Semaphore limits concurrent outstanding requests
+                with _LLM_SEMAPHORE:
+                    return self._backend.chat(
+                        messages=messages,
+                        temperature=self.temperature,
+                        max_tokens=self.max_tokens,
+                    )
             except Exception as e:
-                # Catches httpx.RemoteProtocolError, ConnectionError, timeouts, etc.
                 last_err = e
                 if attempt < retries:
-                    wait = 2 * attempt
+                    # Exponential backoff with full jitter: wait in [0, 2^attempt] seconds
+                    cap = 2 ** attempt
+                    wait = random.uniform(0, cap)
+                    wait = min(wait, 30.0)   # never sleep more than 30 s
                     print(
-                        f"  ⚠ {self.backend_name} connection error (attempt {attempt}/{retries}): "
-                        f"{type(e).__name__}: {e}. Retrying in {wait}s..."
+                        f"  ⚠ {self.backend_name} connection error "
+                        f"(attempt {attempt}/{retries}): "
+                        f"{type(e).__name__}: {e}. Retrying in {wait:.1f}s..."
                     )
                     time.sleep(wait)
 
@@ -95,6 +109,7 @@ class LLM:
                      f"{config.VLLM_BASE_URL}."
             )
         ) from last_err
+
 
     def generate_structured(
         self,
@@ -164,10 +179,14 @@ class LLM:
                 errors.append(str(e))
                 continue
 
-        # None of the candidates validated — raise with details on the last attempt
+        # None of the candidates validated — raise with ALL errors, not just the last
+        # (issue #13: surfacing only errors[-1] hides which candidates were tried)
+        error_detail = "\n".join(
+            f"  candidate[{i}]: {e}" for i, e in enumerate(errors)
+        )
         raise ValueError(
             f"Found {len(candidates)} JSON candidate(s) in response but none matched "
-            f"{schema.__name__}. Last error: {errors[-1] if errors else 'unknown'}"
+            f"{schema.__name__}.\n{error_detail}"
         )
 
     @classmethod
