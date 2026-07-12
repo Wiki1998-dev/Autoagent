@@ -1,0 +1,51 @@
+# AutoAgent — .geminiignore
+# Keep these out of Gemini's context to save tokens
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+
+# Test/coverage artifacts
+.pytest_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+*.cover
+
+# ChromaDB vector store (binary, huge)
+rag/chroma_db/
+rag/*.bin
+*.sqlite3
+
+# Generated outputs (don't analyze your own outputs)
+workspace/reports/
+workspace/tickets/
+audit/events.jsonl
+
+# Logs
+*.log
+
+# Data files (reference via @ only when needed)
+data/
+
+# Lock files
+*.lock

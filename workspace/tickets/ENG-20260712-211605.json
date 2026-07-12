@@ -1,0 +1,15 @@
+{
+  "ticket_id": "ENG-20260712-211605",
+  "title": "Follow-up: Investigation INV-20260712-185041",
+  "body": "Investigation INV-20260712-185041 identified a pedestrian detection failure in heavy rain at night due to a test coverage gap and potential sensor performance degradation under combined adverse visibility conditions.",
+  "metadata": {
+    "task_id": "INV-20260712-185041",
+    "next_steps": [
+      "Add combined adverse visibility scenarios (rain+dusk, fog+night) to the V&V test plan",
+      "Obtain and review camera model card with validated performance envelope for combined rain+dusk conditions",
+      "Conduct a robustness analysis for perception system under combined rain+dusk conditions"
+    ],
+    "human_feedback": ""
+  },
+  "created_at": "2026-07-12T21:16:05.805398+00:00"
+}

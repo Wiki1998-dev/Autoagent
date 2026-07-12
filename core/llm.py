@@ -20,6 +20,7 @@ from pydantic import BaseModel, ValidationError
 from typing import Type, TypeVar
 import config
 from core.backends import build_backend, LLMBackend
+from langsmith import traceable
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -60,6 +61,7 @@ class LLM:
         self._backend: LLMBackend = build_backend(backend_name=self.backend_name, model=model)
         self.model = getattr(self._backend, "model", model)
 
+    @traceable(run_type="llm")
     def generate(self, prompt: str, system: str = "", retries: int = 3) -> str:
         """
         Generate raw text from a prompt.
@@ -111,6 +113,7 @@ class LLM:
         ) from last_err
 
 
+    @traceable(run_type="chain")
     def generate_structured(
         self,
         prompt: str,

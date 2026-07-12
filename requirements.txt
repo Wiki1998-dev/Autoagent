@@ -10,3 +10,4 @@ streamlit
 python-dotenv
 structlog
 markitdown
+langsmith
