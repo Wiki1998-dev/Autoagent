@@ -8,3 +8,5 @@ langchain-core
 fastmcp
 streamlit
 python-dotenv
+structlog
+markitdown

@@ -10,14 +10,30 @@ Usage:
 """
 
 import argparse
+import signal
 import sys
 from datetime import datetime
+
+import structlog
 
 from core.llm import LLM
 from core.logger import log_event
 from rag.setup import build_knowledge_adapter
 from orchestrator.context import PipelineContext
 from orchestrator.graph import build_graph
+
+logger = structlog.get_logger("autoagent.main")
+
+
+def _install_sigterm_handler(task_id: str) -> None:
+    """Issue #21 — flush audit log and exit cleanly on SIGTERM (K8s, systemd)."""
+    def _handler(signum, frame):  # noqa: ANN001
+        logger.warning("sigterm_received", task_id=task_id)
+        log_event("investigation_aborted", "orchestrator", task_id,
+                  data={"signal": "SIGTERM"}, status="error")
+        sys.exit(130)
+    signal.signal(signal.SIGTERM, _handler)
+
 
 
 DEMO_REQUEST = (
@@ -36,28 +52,22 @@ def main():
     parser.add_argument("--task-id", type=str, default=None, help="Investigation task ID (default: auto-generated)")
     args = parser.parse_args()
 
-    print("=" * 60)
-    print("  AutoAgent — Automotive Investigation Copilot")
-    print("=" * 60)
+    # ── Step 5 first pass: generate task_id so SIGTERM handler has it ──
+    task_id = args.task_id or f"INV-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    _install_sigterm_handler(task_id)
 
-    # ── Step 1: Build the RAG pipeline ──
-    print("\n[INIT] Setting up RAG pipeline ...")
+    logger.info("pipeline_init", phase="rag_setup")
     adapter = build_knowledge_adapter(force_reingest=args.ingest)
 
-    # ── Step 2: Initialize LLM ──
-    print("[INIT] Connecting to Ollama LLM ...")
+    logger.info("pipeline_init", phase="llm_connect")
     llm = LLM(model=args.model)
-    print(f"  Using model: {llm.model}")
+    logger.info("llm_ready", model=llm.model)
 
-    # ── Step 3: Build dependency context (thread-safe, no globals) ──
     ctx = PipelineContext(llm=llm, adapter=adapter)
 
-    # ── Step 4: Build the LangGraph ──
-    print("[INIT] Building investigation graph ...")
+    logger.info("pipeline_init", phase="build_graph")
     graph = build_graph()
 
-    # ── Step 5: Prepare initial state ──
-    task_id = args.task_id or f"INV-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
     user_request = args.query or DEMO_REQUEST
 
     initial_state = {
@@ -67,43 +77,35 @@ def main():
     }
 
     log_event("investigation_start", "orchestrator", task_id, data={"request": user_request})
+    logger.info("investigation_start", task_id=task_id, request_preview=user_request[:80])
 
-    print(f"\n[RUN] Starting investigation: {task_id}")
-    print(f"  Request: {user_request[:80]}...")
-    print()
-
-    # ── Step 6: Run the graph ──
+    # ── Run the graph ──
     try:
         final_state = graph.invoke(
             initial_state,
             config={"configurable": {"pipeline_ctx": ctx}},
         )
     except KeyboardInterrupt:
-        print("\n\n[ABORT] Investigation cancelled by user.")
+        logger.warning("investigation_aborted", task_id=task_id, reason="KeyboardInterrupt")
         log_event("investigation_aborted", "orchestrator", task_id)
         sys.exit(1)
     except Exception as e:
-        print(f"\n[ERROR] Investigation failed: {e}")
+        logger.error("investigation_failed", task_id=task_id, error=str(e))
         log_event("investigation_error", "orchestrator", task_id, data={"error": str(e)}, status="error")
         raise
 
-    # ── Step 7: Summary ──
-    print("\n" + "=" * 60)
-    print("  INVESTIGATION COMPLETE")
-    print("=" * 60)
-
     decision = final_state.get("human_decision", "unknown")
-    print(f"  Decision: {decision}")
+    logger.info("investigation_complete", task_id=task_id, decision=decision)
 
     if decision == "approve":
         for result in final_state.get("automation_results", []):
-            status = "✓" if result.get("success") else "✗"
-            print(f"  {status} {result.get('action_type')}: {result.get('output_reference', result.get('error'))}")
+            status = "ok" if result.get("success") else "error"
+            logger.info("automation_result", action=result.get("action_type"),
+                        status=status, ref=result.get("output_reference", result.get("error")))
 
     log_event("investigation_complete", "orchestrator", task_id, data={"decision": decision})
-    print(f"\n  Audit log: audit/events.jsonl")
-    print()
 
 
 if __name__ == "__main__":
     main()
+

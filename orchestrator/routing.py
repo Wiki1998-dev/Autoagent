@@ -2,7 +2,12 @@
 Routing functions for conditional edges in the LangGraph.
 """
 
+import structlog
+
 from orchestrator.state import InvestigationState
+
+logger = structlog.get_logger("autoagent.routing")
+
 
 
 def route_after_validation(state: InvestigationState) -> str:
@@ -17,13 +22,17 @@ def route_after_validation(state: InvestigationState) -> str:
     if validation.get("passed", False):
         return "prepare_human_review"
 
-    # If too many retries, proceed anyway with warnings
-    if retry_count >= 2:
-        print(f"  ⚠ Validation failed after {retry_count} retries, proceeding with warnings")
+    # retry_count is incremented by run_synthesis before this check fires.
+    # After attempt 1 → retry_count=1, after attempt 2 → retry_count=2.
+    # Allow a third pass (retry_count=2 entering synthesis → 3 exiting) so
+    # the system gets exactly MAX_SYNTHESIS_RETRIES=2 genuine retries.
+    MAX_RETRIES = 2
+    if retry_count > MAX_RETRIES:
+        logger.warning("max_retries_exceeded", retry_count=retry_count)
         return "prepare_human_review"
 
     # Otherwise retry synthesis
-    print(f"  ↻ Validation failed, retrying synthesis (attempt {retry_count + 1})")
+    logger.info("retrying_synthesis", attempt=retry_count + 1)
     return "run_synthesis"
 
 
