@@ -28,12 +28,29 @@ LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 
 # Ollama-specific
+# Issue #23: localhost defaults — set OLLAMA_BASE_URL in .env for cloud/K8s
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "nomic-embed-text")
 
 # vLLM-specific (OpenAI-compatible server: `vllm serve <model>`)
+# Issue #23: localhost default — set VLLM_BASE_URL in .env for cloud/K8s
 VLLM_BASE_URL = os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1")
-VLLM_API_KEY = os.getenv("VLLM_API_KEY", "not-needed")   # vLLM ignores this unless you enabled auth
+
+# Issue #11: Never default to a placeholder string. If auth is enabled on
+# vLLM, the operator MUST set VLLM_API_KEY; otherwise we use None (which
+# the OpenAI client maps to an empty header — vLLM ignores it by default).
+_raw_api_key = os.getenv("VLLM_API_KEY", "")
+if _raw_api_key in ("", "not-needed"):
+    import warnings
+    warnings.warn(
+        "VLLM_API_KEY is not set or is the placeholder 'not-needed'. "
+        "If your vLLM server requires auth, set VLLM_API_KEY in .env.",
+        stacklevel=1,
+    )
+    VLLM_API_KEY: str | None = None
+else:
+    VLLM_API_KEY = _raw_api_key
+
 VLLM_MODEL = os.getenv("VLLM_MODEL", "meta-llama/Llama-3.1-8B-Instruct")
 
 # Whether to run the 3 specialist agents (Technical/Quality/Compliance) concurrently.
@@ -46,6 +63,10 @@ if _parallel_env is not None:
 else:
     PARALLEL_SPECIALISTS = LLM_BACKEND == "vllm"
 
+# Issue #8: max simultaneous LLM calls across all threads.
+# Default=1 (safe for Ollama). Increase for vLLM or multi-GPU setups.
+LLM_MAX_CONCURRENT = int(os.getenv("LLM_MAX_CONCURRENT", "1" if LLM_BACKEND == "ollama" else "4"))
+
 # ── ChromaDB ───────────────────────────────────────────────────
 CHROMA_PERSIST_DIR = str(PROJECT_ROOT / "rag" / "vectorstores" / "chroma_db")
 CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "autoagent_knowledge")
@@ -54,6 +75,9 @@ CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "autoagent_knowledge")
 RETRIEVAL_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "5"))
 
 # ── MCP Server Ports ──────────────────────────────────────────
+# Issue #22: These were defined but never referenced by the servers themselves.
+# Kept here as documentation only. Pass them when launching servers:
+#   uvicorn mcp_servers.knowledge_server:mcp --port $KNOWLEDGE_MCP_PORT
 KNOWLEDGE_MCP_PORT = int(os.getenv("KNOWLEDGE_MCP_PORT", "8100"))
-ANALYSIS_MCP_PORT = int(os.getenv("ANALYSIS_MCP_PORT", "8101"))
+ANALYSIS_MCP_PORT  = int(os.getenv("ANALYSIS_MCP_PORT",  "8101"))
 AUTOMATION_MCP_PORT = int(os.getenv("AUTOMATION_MCP_PORT", "8102"))
