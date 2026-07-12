@@ -3,8 +3,13 @@ KnowledgeAdapter — the single interface that all MCP servers and agents
 use to talk to the RAG system. Isolates them from retriever internals.
 """
 
+import structlog
 from dataclasses import dataclass
 from typing import Any
+
+from rag.vectorstores.chroma_store import EmptyRAGError
+
+logger = structlog.get_logger("autoagent.rag")
 
 
 @dataclass
@@ -24,9 +29,16 @@ class KnowledgeAdapter:
         self.retriever = retriever
 
     def search(self, query: str, top_k: int = 5) -> list[SearchResult]:
-        raw_results = self.retriever.retrieve(query, top_k=top_k)
-        results: list[SearchResult] = []
+        try:
+            raw_results = self.retriever.retrieve(query, top_k=top_k)
+        except EmptyRAGError:
+            logger.warning("rag_empty_results", query=query[:120])
+            return []
+        except TimeoutError as e:
+            logger.error("rag_timeout", query=query[:120], error=str(e))
+            return []
 
+        results: list[SearchResult] = []
         for item in raw_results:
             metadata = item.get("metadata", {})
             results.append(
@@ -38,3 +50,4 @@ class KnowledgeAdapter:
                 )
             )
         return results
+
