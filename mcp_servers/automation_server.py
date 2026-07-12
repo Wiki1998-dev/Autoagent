@@ -53,7 +53,19 @@ def save_report(
 ) -> SaveReportResult:
     """Save a markdown investigation report to workspace/reports/<task_id>.md."""
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    path = REPORT_DIR / f"{task_id}.md"
+    # Prevent path traversal by extracting only the filename
+    safe_name = Path(task_id).name
+    path = REPORT_DIR / f"{safe_name}.md"
+
+    # Backup if exists
+    if path.exists():
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        backup_path = REPORT_DIR / f"{safe_name}_backup_{timestamp}.md"
+        try:
+            backup_path.write_text(path.read_text(encoding="utf-8"), encoding="utf-8")
+        except Exception:
+            pass
+
     path.write_text(report_markdown, encoding="utf-8")
     return SaveReportResult(success=True, path=str(path))
 
