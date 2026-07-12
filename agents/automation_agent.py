@@ -29,13 +29,13 @@ class AutomationAgent:
             r = _save_report(task_id=task_id, report_markdown=report_markdown)
             results.append(
                 AutomationResult(
-                    success=r["success"],
+                    success=r.success,
                     action_type="save_report",
-                    output_reference=r["path"],
+                    output_reference=r.path,
                 )
             )
             log_event("action_executed", "automation_agent", task_id,
-                      data={"action": "save_report", "path": r["path"]})
+                      data={"action": "save_report", "path": r.path})
         except Exception as e:
             results.append(AutomationResult(success=False, action_type="save_report", error=str(e)))
 
@@ -52,15 +52,16 @@ class AutomationAgent:
             )
             results.append(
                 AutomationResult(
-                    success=r["success"],
+                    success=r.success,
                     action_type="create_ticket",
-                    output_reference=r["ticket_id"],
+                    output_reference=r.ticket_id,
                 )
             )
             log_event("action_executed", "automation_agent", task_id,
-                      data={"action": "create_ticket", "ticket_id": r["ticket_id"]})
+                      data={"action": "create_ticket", "ticket_id": r.ticket_id})
         except Exception as e:
             results.append(AutomationResult(success=False, action_type="create_ticket", error=str(e)))
 
         log_event("agent_complete", "automation_agent", task_id, data={"actions": len(results)})
         return results
+

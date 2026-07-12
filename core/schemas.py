@@ -38,9 +38,16 @@ class AgentOpinion(BaseModel):
     open_questions: list[str]
 
 
+class Disagreement(BaseModel):
+    """A specific point of conflict between two or more agent opinions."""
+    topic: str
+    positions: list[str]  # one entry per disagreeing agent
+    resolution_suggestion: str = ""
+
+
 class ComparativeReview(BaseModel):
     agreements: list[str]
-    disagreements: list[dict]
+    disagreements: list[Disagreement]   # was list[dict] — now typed
     weak_claims: list[str]
     unsupported_claims: list[str]
     additional_evidence_needed: list[str]
@@ -68,9 +75,15 @@ class ValidationReport(BaseModel):
     unsupported_claims: int
 
 
+class ActionParameters(BaseModel):
+    """Parameters for a proposed automation action."""
+    task_id: str
+    extra: dict = {}          # catch-all for forward-compat fields
+
+
 class ProposedAction(BaseModel):
     action_type: Literal["create_ticket", "save_report"]
-    parameters: dict
+    parameters: ActionParameters   # was loose dict — now typed
     risk_level: Literal["low", "medium", "high"]
 
 
