@@ -15,3 +15,7 @@
 {"timestamp": "2026-07-12T13:23:29.706145+00:00", "event_type": "agent_start", "agent": "quality_agent", "task_id": "INV-20260712-150355", "status": "ok", "data": {}}
 {"timestamp": "2026-07-12T13:29:45.570013+00:00", "event_type": "agent_complete", "agent": "quality_agent", "task_id": "INV-20260712-150355", "status": "ok", "data": {"confidence": 0.7, "findings": 2}}
 {"timestamp": "2026-07-12T13:29:45.627714+00:00", "event_type": "agent_start", "agent": "compliance_agent", "task_id": "INV-20260712-150355", "status": "ok", "data": {}}
+{"timestamp": "2026-07-12T13:36:17.852910+00:00", "event_type": "agent_complete", "agent": "compliance_agent", "task_id": "INV-20260712-150355", "status": "ok", "data": {"confidence": 0.6, "findings": 2}}
+{"timestamp": "2026-07-12T13:36:17.867528+00:00", "event_type": "agent_start", "agent": "critic_agent", "task_id": "INV-20260712-150355", "status": "ok", "data": {}}
+{"timestamp": "2026-07-12T16:21:52.096007+00:00", "event_type": "investigation_start", "agent": "orchestrator", "task_id": "INV-20260712-182152", "status": "ok", "data": {"request": "Investigate scenario SC-042, find similar incidents, analyze likely causes, compare technical, quality, and compliance perspectives, produce a critical synthesis, validate the conclusions, and create a follow-up engineering ticket after approval."}}
+{"timestamp": "2026-07-12T16:21:52.106973+00:00", "event_type": "agent_start", "agent": "evidence_agent", "task_id": "INV-20260712-182152", "status": "ok", "data": {}}
