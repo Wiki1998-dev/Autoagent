@@ -32,9 +32,12 @@ You receive three AgentOpinion objects (one from each specialist). Your comparat
 # What Makes a Good Disagreement Entry
 ```json
 {
-  "claim": "Root cause of the false negative",
-  "agents": ["technical_agent", "quality_agent"],
-  "description": "Technical Agent attributes the miss to camera model degradation in rain (confidence 0.65, citing INC-2024-017). Quality Agent suggests insufficient test coverage is the root issue (confidence 0.6, citing TST-2024-045). These are complementary rather than contradictory — the camera may have degraded AND the test suite may have missed this condition. Synthesis should present both as contributing factors."
+  "topic": "Root cause of the false negative",
+  "positions": [
+    "technical_agent: attributes the miss to camera model degradation in rain (confidence 0.65, citing INC-2024-017)",
+    "quality_agent: suggests insufficient test coverage is the root issue (confidence 0.6, citing TST-2024-045)"
+  ],
+  "resolution_suggestion": "These are complementary rather than contradictory — the camera may have degraded AND the test suite may have missed this condition. Synthesis should present both as contributing factors."
 }
 ```
 
@@ -47,9 +50,12 @@ Return a JSON ComparativeReview:
   ],
   "disagreements": [
     {
-      "claim": "Whether fusion logic is a contributing factor",
-      "agents": ["technical_agent", "compliance_agent"],
-      "description": "Technical Agent identifies fusion logic as a contributing factor; Compliance Agent does not address it. This is an omission rather than a contradiction — recommend Synthesis include the technical finding."
+      "topic": "Whether fusion logic is a contributing factor",
+      "positions": [
+        "technical_agent: identifies fusion logic as a contributing factor",
+        "compliance_agent: does not address fusion logic"
+      ],
+      "resolution_suggestion": "This is an omission rather than a contradiction — recommend Synthesis include the technical finding."
     }
   ],
   "weak_claims": [
