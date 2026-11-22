@@ -1,0 +1,5 @@
+# Vector store files are binary; never apply line-ending conversion.
+rag/vectorstores/chroma_db/** binary
+*.bin binary
+*.sqlite3 binary
+*.pdf binary

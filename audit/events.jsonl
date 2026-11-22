@@ -63,3 +63,26 @@
 {"timestamp": "2026-07-12T23:38:10.450108+00:00", "event_type": "agent_start", "agent": "quality_agent", "task_id": "INV-20260713-012943", "status": "ok", "data": {}}
 {"timestamp": "2026-07-12T23:43:50.927469+00:00", "event_type": "agent_complete", "agent": "quality_agent", "task_id": "INV-20260713-012943", "status": "ok", "data": {"confidence": 0.7, "findings": 2}}
 {"timestamp": "2026-07-12T23:43:50.935659+00:00", "event_type": "agent_start", "agent": "compliance_agent", "task_id": "INV-20260713-012943", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T13:39:45.625770+00:00", "event_type": "investigation_start", "agent": "orchestrator", "task_id": "SETUP-TEST", "status": "ok", "data": {"request": "Investigate scenario SC-042, find similar incidents, analyze likely causes, compare technical, quality, and compliance perspectives, produce a critical synthesis, validate the conclusions, and create a follow-up engineering ticket after approval."}}
+{"timestamp": "2026-11-22T13:39:45.627775+00:00", "event_type": "agent_start", "agent": "evidence_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T15:23:32.753545+00:00", "event_type": "investigation_start", "agent": "orchestrator", "task_id": "SETUP-TEST", "status": "ok", "data": {"request": "Investigate scenario SC-042, find similar incidents, analyze likely causes, compare technical, quality, and compliance perspectives, produce a critical synthesis, validate the conclusions, and create a follow-up engineering ticket after approval."}}
+{"timestamp": "2026-11-22T15:23:32.770846+00:00", "event_type": "agent_start", "agent": "evidence_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T15:26:57.547396+00:00", "event_type": "agent_complete", "agent": "evidence_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"incidents_found": 3, "gaps": 5}}
+{"timestamp": "2026-11-22T15:26:57.553025+00:00", "event_type": "agent_start", "agent": "technical_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T15:31:29.945315+00:00", "event_type": "agent_complete", "agent": "technical_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"confidence": 0.6, "findings": 2}}
+{"timestamp": "2026-11-22T15:31:30.000555+00:00", "event_type": "agent_start", "agent": "quality_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T15:34:25.707378+00:00", "event_type": "agent_complete", "agent": "quality_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"confidence": 0.8, "findings": 4}}
+{"timestamp": "2026-11-22T15:34:25.721844+00:00", "event_type": "agent_start", "agent": "compliance_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T15:37:11.642857+00:00", "event_type": "agent_complete", "agent": "compliance_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"confidence": 0.65, "findings": 2}}
+{"timestamp": "2026-11-22T15:37:11.657260+00:00", "event_type": "agent_start", "agent": "critic_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T15:42:34.021422+00:00", "event_type": "agent_complete", "agent": "critic_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"agreements": 1, "disagreements": 2, "weak_claims": 1}}
+{"timestamp": "2026-11-22T15:42:34.025526+00:00", "event_type": "agent_start", "agent": "synthesis_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T15:47:59.149497+00:00", "event_type": "agent_complete", "agent": "synthesis_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"accepted": 2, "rejected": 2, "unresolved": 2}}
+{"timestamp": "2026-11-22T15:47:59.155290+00:00", "event_type": "agent_start", "agent": "validator_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T15:51:56.468876+00:00", "event_type": "agent_complete", "agent": "validator_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"passed": true, "supported": 3, "unsupported": 0, "issues": 3}}
+{"timestamp": "2026-11-22T15:51:56.481477+00:00", "event_type": "human_decision", "agent": "human", "task_id": "SETUP-TEST", "status": "ok", "data": {"decision": "approve", "feedback": ""}}
+{"timestamp": "2026-11-22T15:51:56.482798+00:00", "event_type": "agent_start", "agent": "automation_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {}}
+{"timestamp": "2026-11-22T15:51:56.486820+00:00", "event_type": "action_executed", "agent": "automation_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"action": "save_report", "path": "C:\\Users\\swiki\\Documents\\Agentic Framework\\Autoagent\\workspace\\reports\\SETUP-TEST.md"}}
+{"timestamp": "2026-11-22T15:51:56.488829+00:00", "event_type": "action_executed", "agent": "automation_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"action": "create_ticket", "ticket_id": "ENG-20261122-155156"}}
+{"timestamp": "2026-11-22T15:51:56.488829+00:00", "event_type": "agent_complete", "agent": "automation_agent", "task_id": "SETUP-TEST", "status": "ok", "data": {"actions": 2}}
+{"timestamp": "2026-11-22T15:51:56.491386+00:00", "event_type": "investigation_complete", "agent": "orchestrator", "task_id": "SETUP-TEST", "status": "ok", "data": {"decision": "approve"}}

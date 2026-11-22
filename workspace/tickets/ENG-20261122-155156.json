@@ -1,0 +1,17 @@
+{
+  "ticket_id": "ENG-20261122-155156",
+  "title": "Follow-up: Investigation SETUP-TEST",
+  "body": "Investigation SETUP-TEST identified a pedestrian detection failure in combined rain and dusk conditions. The camera model's performance in these conditions is not documented, contributing to the degradation. The system FMEA does not explicitly consider combined rain+dusk as a separate scenario, which may lead to inadequate risk assessment. The fusion logic's inability to handle low-confidence camera outputs is a contributing factor to the observed instability. The failure represents a potential non-compliance with SOTIF acceptance criteria for pedestrian detection.",
+  "metadata": {
+    "task_id": "SETUP-TEST",
+    "next_steps": [
+      "Obtain and review the camera model card to validate performance envelope for rain+dusk conditions",
+      "Add combined adverse visibility scenarios (rain+dusk, fog+night) to the V&V test plan",
+      "Review and update the system FMEA to include combined environmental triggering conditions",
+      "Verify sensor fusion fallback behaviour when camera confidence is below threshold",
+      "Conduct a SOTIF triggering condition analysis for combined adverse environmental scenarios"
+    ],
+    "human_feedback": ""
+  },
+  "created_at": "2026-11-22T15:51:56.486820+00:00"
+}
