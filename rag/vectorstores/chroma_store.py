@@ -65,6 +65,8 @@ class ChromaStore:
 
         for i, doc in enumerate(documents):
             doc_id = doc["metadata"].get("source", f"doc-{i}")
+            if "chunk" in doc["metadata"]:
+                doc_id = f"{doc_id}#{doc['metadata']['chunk']}"
             ids.append(doc_id)
             texts.append(doc["text"])
             metadatas.append(doc["metadata"])

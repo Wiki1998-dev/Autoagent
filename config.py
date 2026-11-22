@@ -26,7 +26,9 @@ LLM_BACKEND = os.getenv("LLM_BACKEND", "ollama").lower()
 LLM_MODEL = os.getenv("LLM_MODEL", "llama3.1")          # or llama3, etc.
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
 LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
-LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "9999999.0"))
+# Clamped: Windows sockets reject timeouts above ~2,147,483 s (INT_MAX ms)
+# with "OverflowError: timeout doesn't fit into C timeval".
+LLM_TIMEOUT = min(float(os.getenv("LLM_TIMEOUT", "9999999.0")), 2_000_000.0)
 
 # Ollama-specific
 # Localhost defaults — set OLLAMA_BASE_URL in .env for cloud/K8s

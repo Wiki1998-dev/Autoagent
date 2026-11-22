@@ -9,5 +9,5 @@ fastmcp
 streamlit
 python-dotenv
 structlog
-markitdown
+markitdown[pdf,docx,xlsx,pptx]
 langsmith
