@@ -76,6 +76,10 @@ CHROMA_COLLECTION = os.getenv("CHROMA_COLLECTION", "autoagent_knowledge")
 
 # ── Retrieval ──────────────────────────────────────────────────
 RETRIEVAL_TOP_K = int(os.getenv("RETRIEVAL_TOP_K", "5"))
+# Evidence agent: max chunks taken from any one file, and total characters
+# of evidence put in the prompt (~4 chars/token; keep well under num_ctx).
+EVIDENCE_MAX_CHUNKS_PER_SOURCE = int(os.getenv("EVIDENCE_MAX_CHUNKS_PER_SOURCE", "3"))
+EVIDENCE_CHAR_BUDGET = int(os.getenv("EVIDENCE_CHAR_BUDGET", "9000"))
 
 # ── MCP Server Ports ──────────────────────────────────────────
 # These were defined but never referenced by the servers themselves.
